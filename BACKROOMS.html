@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIVEL 1: ARCHIVOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Space Mono', monospace; }
+        
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.85); color: #ff3333; cursor: pointer; transition: opacity 0.5s; text-align: center;}
+        #ui-layer h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 15px #ff3333; text-transform: uppercase; animation: glitchText 0.1s infinite;}
+        #ui-layer p { font-size: 1.2rem; color: #fff; }
+        
+        /* Mira central (Crosshair) */
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background-color: rgba(255, 255, 255, 0.8); border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; transition: background-color 0.2s, transform 0.2s; }
+        #crosshair.active { background-color: #ff3333; transform: translate(-50%, -50%) scale(2); box-shadow: 0 0 10px #ff3333; }
+        
+        /* Efectos visuales */
+        .vignette { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.9) 100%); pointer-events: none; z-index: 6; }
+        .noise { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; opacity: 0.06; pointer-events: none; z-index: 7; background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E'); }
+
+        @keyframes glitchText { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>SISTEMA DE ARCHIVOS ENCONTRADO</h1>
+        <p>> HAZ CLIC PARA ENTRAR AL TÚNEL</p>
+        <p style="font-size: 0.9rem; margin-top: 20px; color: #aaa;">[ W, A, S, D para caminar | SHIFT para correr ]</p>
+        <p style="font-size: 0.9rem; color: #aaa;">[ Clic para interactuar con objetos rojos ]</p>
+        <p style="font-size: 0.9rem; color: #aaa;">[ ESC para pausar ]</p>
+    </div>
+
+    <div id="crosshair"></div>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+
+    <!-- Librerías 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+
+    <script>
+        // ==========================================
+        // 1. CONFIGURACIÓN DEL MOTOR 3D
+        // ==========================================
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.025); 
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // ==========================================
+        // 2. TEXTURAS Y MATERIALES
+        // ==========================================
+        const textureLoader = new THREE.TextureLoader();
+        
+        const wallTexture = textureLoader.load('texturas/pared.jpg'); 
+        wallTexture.wrapS = THREE.RepeatWrapping; wallTexture.wrapT = THREE.RepeatWrapping;
+        wallTexture.repeat.set(20, 2); 
+
+        const floorTexture = textureLoader.load('texturas/piso.jpg');
+        floorTexture.wrapS = THREE.RepeatWrapping; floorTexture.wrapT = THREE.RepeatWrapping;
+        floorTexture.repeat.set(5, 20);
+
+        const doorTexture = textureLoader.load('texturas/puerta.jpg');
+
+        // IMPORTANTE: side: THREE.DoubleSide permite que las paredes se vean por ambos lados (útil para las habitaciones)
+        const wallMaterial = new THREE.MeshLambertMaterial({ color: '#d8d2a7', map: wallTexture, side: THREE.DoubleSide });
+        const floorMaterial = new THREE.MeshLambertMaterial({ color: '#5c5443', map: floorTexture, side: THREE.DoubleSide });
+        const ceilingMaterial = new THREE.MeshLambertMaterial({ color: '#222', side: THREE.DoubleSide });
+        
+        // Materiales de las puertas (Blanco por defecto, Rojo al acercarse)
+        const doorMaterialWhite = new THREE.MeshLambertMaterial({ color: '#ffffff', map: doorTexture });
+        const doorMaterialRed = new THREE.MeshLambertMaterial({ color: '#ff0000', map: doorTexture });
+
+        // ==========================================
+        // 3. CONSTRUCCIÓN DEL PASILLO CON HUECOS
+        // ==========================================
+        const corridorLength = 200;
+        const corridorWidth = 12;
+        const corridorHeight = 10;
+
+        // Suelo y Techo
+        const floorGeo = new THREE.PlaneGeometry(corridorWidth, corridorLength);
+        const floor = new THREE.Mesh(floorGeo, floorMaterial);
+        floor.rotation.x = -Math.PI / 2; floor.position.z = -corridorLength / 2 + 10;
+        scene.add(floor);
+
+        const ceiling = new THREE.Mesh(floorGeo, ceilingMaterial);
+        ceiling.rotation.x = Math.PI / 2; ceiling.position.y = corridorHeight; ceiling.position.z = -corridorLength / 2 + 10;
+        scene.add(ceiling);
+
+        // Pared Derecha (Continua)
+        const wallRightGeo = new THREE.PlaneGeometry(corridorLength, corridorHeight);
+        const wallRight = new THREE.Mesh(wallRightGeo, wallMaterial);
+        wallRight.rotation.y = -Math.PI / 2;
+        wallRight.position.set(corridorWidth / 2, corridorHeight / 2, -corridorLength / 2 + 10);
+        scene.add(wallRight);
+
+        // Pared Izquierda (Fragmentada para permitir la habitación Fungi en z = -75)
+        // Fragmento 1: Inicio hasta la puerta Fungi (z = 10 a z = -73) -> Longitud 83
+        const wallL1Geo = new THREE.PlaneGeometry(83, corridorHeight);
+        const wallL1 = new THREE.Mesh(wallL1Geo, wallMaterial);
+        wallL1.rotation.y = Math.PI / 2;
+        wallL1.position.set(-corridorWidth / 2, corridorHeight / 2, -31.5);
+        scene.add(wallL1);
+
+        // Fragmento 2: Después de la puerta Fungi (z = -77 a z = -190) -> Longitud 113
+        const wallL2Geo = new THREE.PlaneGeometry(113, corridorHeight);
+        const wallL2 = new THREE.Mesh(wallL2Geo, wallMaterial);
+        wallL2.rotation.y = Math.PI / 2;
+        wallL2.position.set(-corridorWidth / 2, corridorHeight / 2, -133.5);
+        scene.add(wallL2);
+
+        // Fragmento 3: Dintel (Pared sobre la puerta Fungi)
+        const wallL3Geo = new THREE.PlaneGeometry(4, 3); // La puerta mide 7 de alto, faltan 3 para llegar a 10
+        const wallL3 = new THREE.Mesh(wallL3Geo, wallMaterial);
+        wallL3.rotation.y = Math.PI / 2;
+        wallL3.position.set(-corridorWidth / 2, 8.5, -75);
+        scene.add(wallL3);
+
+
+        // ==========================================
+        // 4. HABITACIÓN FUNGI (INTERIOR)
+        // ==========================================
+        // Tamaño: 30x30. Conectada al hueco en z = -75, x = -6.
+        const roomSize = 30;
+        const roomX = -corridorWidth / 2 - roomSize / 2; // Centro X de la habitación
+        const roomZ = -75; // Centro Z de la habitación
+
+        // Suelo y techo de la habitación
+        const roomFloorGeo = new THREE.PlaneGeometry(roomSize, roomSize);
+        const roomFloor = new THREE.Mesh(roomFloorGeo, floorMaterial);
+        roomFloor.rotation.x = -Math.PI / 2; roomFloor.position.set(roomX, 0, roomZ);
+        scene.add(roomFloor);
+
+        const roomCeil = new THREE.Mesh(roomFloorGeo, ceilingMaterial);
+        roomCeil.rotation.x = Math.PI / 2; roomCeil.position.set(roomX, corridorHeight, roomZ);
+        scene.add(roomCeil);
+
+        // Paredes de la habitación
+        const roomWallGeo = new THREE.PlaneGeometry(roomSize, corridorHeight);
+        
+        const roomWallNorth = new THREE.Mesh(roomWallGeo, wallMaterial);
+        roomWallNorth.position.set(roomX, corridorHeight / 2, roomZ - roomSize / 2);
+        scene.add(roomWallNorth);
+
+        const roomWallSouth = new THREE.Mesh(roomWallGeo, wallMaterial);
+        roomWallSouth.position.set(roomX, corridorHeight / 2, roomZ + roomSize / 2);
+        scene.add(roomWallSouth);
+
+        const roomWallWest = new THREE.Mesh(roomWallGeo, wallMaterial);
+        roomWallWest.rotation.y = Math.PI / 2;
+        roomWallWest.position.set(roomX - roomSize / 2, corridorHeight / 2, roomZ);
+        scene.add(roomWallWest);
+
+        // Luces verdes ambientales dentro de la sala Fungi
+        const fungiLight = new THREE.PointLight(0x55ff55, 1, 40);
+        fungiLight.position.set(roomX, 5, roomZ);
+        scene.add(fungiLight);
+
+        // Un objeto extraño en el centro (Representación de la muestra Fungi)
+        const pedestalGeo = new THREE.CylinderGeometry(2, 2, 3, 16);
+        const pedestal = new THREE.Mesh(pedestalGeo, new THREE.MeshLambertMaterial({color: 0x222222}));
+        pedestal.position.set(roomX, 1.5, roomZ);
+        scene.add(pedestal);
+
+        const fungiGeo = new THREE.DodecahedronGeometry(1.5, 1);
+        const fungiMat = new THREE.MeshLambertMaterial({color: 0x00ff00, wireframe: true});
+        const fungiObj = new THREE.Mesh(fungiGeo, fungiMat);
+        fungiObj.position.set(roomX, 4, roomZ);
+        scene.add(fungiObj);
+
+
+        // ==========================================
+        // 5. OBJETOS INTERACTIVOS (PUERTAS Y PC)
+        // ==========================================
+        const interactables = []; // Todos los objetos clicables
+        const doors = []; // Solo las puertas (para la proximidad)
+
+        const doorGeo = new THREE.PlaneGeometry(4, 7);
+
+        function createDoor(zPos, isLeft, projectData, isReady) {
+            // Creamos un grupo para facilitar la animación de apertura (deslizar hacia arriba)
+            const doorGroup = new THREE.Group();
+            doorGroup.position.set(isLeft ? -corridorWidth/2 + 0.1 : corridorWidth/2 - 0.1, 3.5, zPos);
+            doorGroup.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
+
+            const doorMesh = new THREE.Mesh(doorGeo, doorMaterialWhite);
+            doorGroup.add(doorMesh);
+
+            doorGroup.userData = { isDoor: true, isReady: isReady, isOpen: false, project: projectData };
+            
+            scene.add(doorGroup);
+            interactables.push(doorMesh); // Añadimos la malla visible al raycaster
+            doors.push(doorGroup); // Añadimos el grupo a la lista de puertas
+        }
+
+        // Crear puertas
+        createDoor(-15, true, "Proyecto: Elaris", false);
+        createDoor(-30, false, "Proyecto: FMD 2024", false);
+        createDoor(-45, true, "Proyecto: Fluidez en Contrastes", false);
+        createDoor(-60, false, "Proyecto: Servidor Imagen Escrita", false);
+        
+        // LA ÚNICA PUERTA FUNCIONAL POR AHORA (Muestra Fungi)
+        createDoor(-75, true, "Proyecto: Muestra Fungi", true);
+        
+        createDoor(-90, false, "Proyecto: Zona Inestable (Mecánica)", false);
+        createDoor(-105, true, "Proyecto: Zona Inestable (Digital)", false);
+
+        // --- COMPUTADORA DE SALIDA (DETRÁS DEL SPAWN) ---
+        const pcGroup = new THREE.Group();
+        pcGroup.position.set(0, 2, 8); // z=8 está DETRÁS del inicio (z=5)
+
+        const deskGeo = new THREE.BoxGeometry(4, 3, 2);
+        const desk = new THREE.Mesh(deskGeo, new THREE.MeshLambertMaterial({color: 0x332211}));
+        desk.position.y = 1.5;
+        pcGroup.add(desk);
+
+        const monitorGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+        const monitor = new THREE.Mesh(monitorGeo, new THREE.MeshLambertMaterial({color: 0xcccccc}));
+        monitor.position.set(0, 3.75, 0);
+        pcGroup.add(monitor);
+
+        const screenGeo = new THREE.PlaneGeometry(1.3, 1.1);
+        const screen = new THREE.Mesh(screenGeo, new THREE.MeshBasicMaterial({color: 0x33ff00}));
+        screen.position.set(0, 3.75, -0.76); // Cara hacia el jugador
+        screen.rotation.y = Math.PI; // Invertir para que mire a z=5
+        screen.userData = { isComputer: true }; // El raycaster buscará este dato
+        pcGroup.add(screen);
+
+        scene.add(pcGroup);
+        interactables.push(screen); // Solo la pantalla verde es interactiva
+
+        // ==========================================
+        // 6. ILUMINACIÓN DEL PASILLO
+        // ==========================================
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.4); 
+        scene.add(ambientLight);
+
+        for (let i = 0; i < corridorLength; i += 20) {
+            const pointLight = new THREE.PointLight(0xffb84d, 1.2, 35); 
+            pointLight.position.set(0, corridorHeight - 1, -i);
+            scene.add(pointLight);
+            
+            const bulb = new THREE.Mesh(new THREE.BoxGeometry(2, 0.2, 0.5), new THREE.MeshBasicMaterial({ color: 0xffffee }));
+            bulb.position.set(0, corridorHeight - 0.1, -i);
+            scene.add(bulb);
+        }
+
+        // ==========================================
+        // 7. CONTROLES Y MOVIMIENTO
+        // ==========================================
+        camera.position.set(0, 5, 5); // Inicio mirando hacia -Z
+
+        const controls = new THREE.PointerLockControls(camera, document.body);
+        const uiLayer = document.getElementById('ui-layer');
+
+        uiLayer.addEventListener('click', () => { controls.lock(); });
+        controls.addEventListener('lock', () => { uiLayer.style.opacity = '0'; setTimeout(() => uiLayer.style.display = 'none', 500); });
+        controls.addEventListener('unlock', () => { uiLayer.style.display = 'flex'; setTimeout(() => uiLayer.style.opacity = '1', 10); uiLayer.innerHTML = "<h1>SISTEMA PAUSADO</h1><p>> HAZ CLIC PARA REANUDAR</p>"; });
+
+        let moveForward = false; let moveBackward = false;
+        let moveLeft = false; let moveRight = false;
+        let isSprinting = false; // NUEVO: Sprint
+        
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        const baseSpeed = 80.0; // NUEVO: Velocidad base aumentada
+
+        document.addEventListener('keydown', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyD': moveRight = true; break;
+                case 'ShiftLeft': case 'ShiftRight': isSprinting = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyD': moveRight = false; break;
+                case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
+            }
+        });
+
+        // ==========================================
+        // 8. INTERACCIÓN (RAYCASTER)
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        const centerScreen = new THREE.Vector2(0, 0); 
+        const crosshair = document.getElementById('crosshair');
+
+        document.addEventListener('mousedown', () => {
+            if (controls.isLocked === true) {
+                raycaster.setFromCamera(centerScreen, camera);
+                const intersects = raycaster.intersectObjects(interactables);
+
+                if (intersects.length > 0 && intersects[0].distance < 15) {
+                    const obj = intersects[0].object;
+
+                    // Si hacemos clic en la pantalla de la PC
+                    if (obj.userData.isComputer) {
+                        uiLayer.style.display = 'flex';
+                        uiLayer.style.opacity = '1';
+                        uiLayer.innerHTML = "<h1>DESCONECTANDO...</h1>";
+                        setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+                    }
+
+                    // Si hacemos clic en una puerta
+                    if (obj.parent.userData.isDoor) {
+                        const doorGroup = obj.parent;
+                        if (doorGroup.userData.isReady) {
+                            // Abrir la puerta
+                            doorGroup.userData.isOpen = true;
+                        } else {
+                            // Puerta bloqueada
+                            uiLayer.style.display = 'flex';
+                            uiLayer.style.opacity = '1';
+                            uiLayer.innerHTML = "<h1 style='color:red;'>ARCHIVO BLOQUEADO</h1><p>> EN DESARROLLO</p>";
+                            setTimeout(() => { uiLayer.style.opacity = '0'; setTimeout(() => uiLayer.style.display = 'none', 500); }, 1500);
+                        }
+                    }
+                }
+            }
+        });
+
+        // ==========================================
+        // 9. BUCLE DE ANIMACIÓN Y COLISIONES
+        // ==========================================
+        let prevTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            // 1. Raycaster continuo para cambiar color del cursor
+            raycaster.setFromCamera(centerScreen, camera);
+            const intersects = raycaster.intersectObjects(interactables);
+            if (intersects.length > 0 && intersects[0].distance < 15) {
+                crosshair.classList.add('active');
+            } else {
+                crosshair.classList.remove('active');
+            }
+
+            // 2. Control de Puertas (Color por proximidad y Apertura)
+            doors.forEach(doorGroup => {
+                const dist = camera.position.distanceTo(doorGroup.position);
+                const doorMesh = doorGroup.children[0];
+                
+                // Color rojo si estás cerca
+                if (dist < 15 && !doorGroup.userData.isOpen) {
+                    doorMesh.material = doorMaterialRed;
+                } else {
+                    doorMesh.material = doorMaterialWhite;
+                }
+
+                // Animación de deslizamiento hacia arriba si está abierta
+                const targetY = doorGroup.userData.isOpen ? 10.5 : 3.5;
+                doorGroup.position.y += (targetY - doorGroup.position.y) * 0.05;
+            });
+
+            // 3. Físicas y Movimiento
+            if (controls.isLocked === true) {
+                velocity.x -= velocity.x * 10.0 * delta; 
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize(); 
+
+                const currentSpeed = isSprinting ? baseSpeed * 1.8 : baseSpeed;
+
+                if (moveForward || moveBackward) velocity.z -= direction.z * currentSpeed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * currentSpeed * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                // --- SISTEMA DE COLISIONES TIPO LABERINTO ---
+                let boundLeft = -corridorWidth / 2 + 1;
+                let boundRight = corridorWidth / 2 - 1;
+                let boundFront = -corridorLength + 1;
+                let boundBack = 10 - 1;
+
+                // ¿Estamos en la zona de la puerta Fungi (z entre -73 y -77)?
+                const inFungiDoorZone = (camera.position.z < -73 && camera.position.z > -77);
+
+                // Si estamos cruzando la puerta o ya adentro de la habitación Fungi
+                if (camera.position.x < -corridorWidth / 2 + 0.5) {
+                    boundLeft = -corridorWidth / 2 - roomSize + 1; // Pared oeste de la sala
+                    boundRight = -corridorWidth / 2 - 0.5; // Pared este de la sala (espalda del pasillo)
+                    boundFront = -90 + 1; // Pared norte de la sala
+                    boundBack = -60 - 1; // Pared sur de la sala
+
+                    if (inFungiDoorZone) {
+                        boundRight = corridorWidth / 2 - 1; // Permite salir de vuelta al pasillo
+                    }
+                } else {
+                    // Estamos en el pasillo principal
+                    if (inFungiDoorZone && doors[4].userData.isOpen) { // doors[4] es Fungi
+                        boundLeft = -corridorWidth / 2 - roomSize + 1; // Permite entrar si está abierta
+                    }
+                }
+
+                // Aplicar colisiones
+                if (camera.position.x < boundLeft) camera.position.x = boundLeft;
+                if (camera.position.x > boundRight) camera.position.x = boundRight;
+                if (camera.position.z < boundFront) camera.position.z = boundFront;
+                if (camera.position.z > boundBack) camera.position.z = boundBack;
+            }
+
+            // Animar el hongo del centro rotando
+            fungiObj.rotation.y += 1 * delta;
+            fungiObj.rotation.x += 0.5 * delta;
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

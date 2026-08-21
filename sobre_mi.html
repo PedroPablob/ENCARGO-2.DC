@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cian | Archivo Personal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <audio id="bg-music" loop></audio>
+    <div id="music-player-container">
+        <div class="music-icon-wrapper">
+            <button id="stop-music-btn">X</button>
+            <img src="clippy/icono-musica.png" id="music-icon" alt="Cambiar Música">
+        </div>
+        <span id="current-track-label">> Esperando...</span>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" title="Ajustar Volumen">
+    </div>
+
+    <div class="noise-overlay"></div>
+    <div class="vignette-overlay"></div>
+
+    <header>
+        <h1 class="flicker">Hola, Pedro Pablo_</h1>
+        <p class="subtitle">Estudiante de la eAD · PUCV</p>
+        
+        <nav class="main-nav">
+            <ul>
+                <li><a href="index.html">/INICIO</a></li>
+                <li><a href="sobre_mi.html" class="active">/INFO_DESARROLLADOR</a></li>
+                <li><a href="proyectos.html">/PROYECTOS</a></li>
+                <li><a href="contacto.html">/CONTACTO</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+        <section>
+            <h2>[ INFORMACIÓN DEL DESARROLLADOR ]</h2>
+            <div class="about-box">
+                <p class="about-text">
+                    > "Hola! Soy Pedro Pablo, cian para los amigos, diseñador en formación y creador visual. Actualmente curso el cuarto año en la eAD PUCV. Mi trabajo transita entre la ilustración digital, el diseño de interacción y la construcción de objetos y prototipos físicos. Disfruto experimentando con herramientas técnicas y manuales para dar vida a conceptos que conecten con las personas y resuelvan problemas reales."
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h2>[ TRAYECTORIA ACADÉMICA ]</h2>
+            <div class="timeline">
+                <div class="timeline-item active-status">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>> FORMACIÓN ACTUAL</h3>
+                        <ul class="timeline-list">
+                            <li>Taller de Diseño de Servicios</li>
+                            <li>Diseño desde el Código</li>
+                            <li>Presentación: Epistemología en Arquitectura y Diseño</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>> 2026 (1er Semestre)</h3>
+                        <ul class="timeline-list">
+                            <li>Taller de Diseño de Interacción</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>> 2025</h3>
+                        <ul class="timeline-list">
+                            <li>Taller de Tipografía</li>
+                            <li>Taller de la Ocasión Editorial</li>
+                            <li>Diseño Tipográfico</li>
+                            <li>Presentación: Diseño y Cultura Contemporánea</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>> 2024</h3>
+                        <ul class="timeline-list">
+                            <li>Taller de la Diversión del Hábito</li>
+                            <li>Taller del Hacer Visible</li>
+                            <li>El dibujo como herramienta de conocimiento</li>
+                            <li>Fabricación con Medios Digitales</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>> 2023</h3>
+                        <ul class="timeline-list">
+                            <li>Taller de Observación Fundamento y Forma</li>
+                            <li>Taller del Habitar</li>
+                            <li>Imagen Escrita</li>
+                            <li>Presentación: El Original en el Arte</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>[ HABILIDADES REGISTRADAS ]</h2>
+            <div class="skills-interests-grid">
+                <div class="editorial-group">
+                    <h3>> SOFTWARE_Y_TÉCNICA</h3>
+                    <ul class="editorial-list">
+                        <li>Adobe Photoshop, Illustrator & InDesign</li>
+                        <li>Paint Tool SAI</li>
+                        <li>AutoCAD & Fusion 360</li>
+                        <li>Blender</li>
+                        <li>HTML, CSS & JavaScript</li>
+                    </ul>
+                </div>
+                <div class="editorial-group">
+                    <h3>> VARIABLES_PSICOLÓGICAS</h3>
+                    <ul class="editorial-list">
+                        <li>Ilustración Digital (@ciantastico)</li>
+                        <li>Modelado 3D y Animación</li>
+                        <li>Frecuencias auditivas (Jpop, Jazz, Indie)</li>
+                        <li>Fotografía y captura de anomalías</li>
+                        <li>Estudio del mundo Fungi</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="easter-egg-box">
+                <p>> ANALIZANDO BIOMETRÍA DEL USUARIO ACTUAL...</p>
+                <p class="reveal-text delay-1">> HUELLA DIGITAL NO RECONOCIDA.</p>
+                <p class="reveal-text delay-2">> Espera... ¿no eres Pedro Pablo?</p>
+                <p class="reveal-text delay-3">> ERROR. INTRUSO DETECTADO. REPORTE DE SEGURIDAD ENVIADO.</p>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p style="margin: 5px 0;">Pedro Pablo Beltrán Silva</p>
+        <p style="margin: 5px 0;">Sitio web desarrollado como segundo encargo del ramo Diseño desde el código.</p>
+        <p style="margin: 5px 0;">Sistema de diseño: eAD PUCV</p>
+        <p style="margin: 5px 0;">Última actualización: [DATOS BORRADOS]</p>
+        <p style="color: var(--accent-creepy); font-size: 0.7rem; margin-top: 20px;">
+            > AVISO DEL SISTEMA: Parte de la arquitectura de código de esta interfaz fue desarrollada con asistencia de Inteligencia Artificial, bajo estricta supervisión del desarrollador.
+        </p>
+    </footer>
+
+    <div id="crash-screen">
+        <div class="crash-text">[ ADVERTENCIA ]</div>
+        <div class="crash-text">SISTEMA SOBRECARGADO</div>
+        <div class="crash-text">SISTEMA COMPROMETIDO... REINICIANDO_</div>
+    </div>
+
+    <div id="assistant-container">
+        <div class="assistant-bubble" id="assistant-bubble">
+            <span id="assistant-text"></span>
+        </div>
+        <div class="assistant-sprite" id="clippy-sprite"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
