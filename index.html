@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cian | Base de Datos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <audio id="bg-music" loop></audio>
+    <div id="music-player-container">
+        <div class="music-icon-wrapper">
+            <button id="stop-music-btn">X</button>
+            <img src="clippy/icono-musica.png" id="music-icon" alt="Cambiar Música">
+        </div>
+        <span id="current-track-label">> Esperando...</span>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" title="Ajustar Volumen">
+    </div>
+
+    <div id="boot-screen">
+        <div id="boot-text-container"></div>
+        <div id="login-container">
+            <p class="boot-line">USUARIO: ADMIN_CIAN</p>
+            <p class="boot-line">CONTRASEÑA: ******** <span class="cursor-blink"></span></p>
+            <button type="button" id="login-btn">> [ INGRESAR AL SISTEMA ]</button>
+        </div>
+    </div>
+
+    <div class="noise-overlay"></div>
+    <div class="vignette-overlay"></div>
+
+    <header>
+        <h1 class="flicker">Hola, Pedro Pablo_</h1>
+        <p class="subtitle">Estudiante de la eAD · PUCV</p>
+        <br>
+        <p class="subtitle" style="font-size: 0.75rem; background: transparent; color: var(--text-dark);">Ubicación: Desconocida (Anteriormente V. Alemana)</p>
+        
+        <nav class="main-nav">
+            <ul>
+                <li><a href="index.html" class="active">/INICIO</a></li>
+                <li><a href="sobre_mi.html">/INFO</a></li>
+                <li><a href="proyectos.html">/PROYECTOS</a></li>
+                <li><a href="ejercicios.html">/EJERCICIOS</a></li>
+                <li><a href="contacto.html">/CONTACTO</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+        <section>
+            <h2>[ BIENVENIDO AL SISTEMA ]</h2>
+            <div class="about-box" style="margin-bottom: 30px;">
+                <p class="about-text" style="text-align: left;">
+                    > Acceso concedido. Has ingresado a la base de datos central y portafolio de Pedro Pablo Beltrán. Explora los directorios a continuación para acceder a la formación académica, los registros de anomalías (proyectos), los ejercicios de código, el panel de contacto y la documentación universitaria.
+                </p>
+            </div>
+
+            <div class="explore-grid">
+                
+                <a href="sobre_mi.html" class="explore-card glitch-item">
+                    <div>
+                        <span class="explore-card-label">Perfil</span>
+                        <h3>Info_Desarrollador</h3>
+                        <p>Mi recorrido académico, intereses, variables psicológicas y herramientas de diseño.</p>
+                    </div>
+                    <span class="explore-card-link">> Explorar_</span>
+                </a>
+                
+                <a href="proyectos.html" class="explore-card glitch-item">
+                    <div>
+                        <span class="explore-card-label">Selección</span>
+                        <h3>Proyectos</h3>
+                        <p>Una selección de trabajos gráficos, editoriales y anomalías de interacción.</p>
+                    </div>
+                    <span class="explore-card-link">> Ver_proyectos_</span>
+                </a>
+
+                <a href="ejercicios.html" class="explore-card glitch-item">
+                    <div>
+                        <span class="explore-card-label">Código</span>
+                        <h3>Ejercicios</h3>
+                        <p>Recopilación de ejercicios de programación desarrollados en el taller.</p>
+                    </div>
+                    <span class="explore-card-link">> Ver_ejercicios_</span>
+                </a>
+
+                <a href="contacto.html" class="explore-card glitch-item">
+                    <div>
+                        <span class="explore-card-label">Contacto</span>
+                        <h3>Transmisión</h3>
+                        <p>Un espacio seguro para propuestas, colaboraciones o consultas.</p>
+                    </div>
+                    <span class="explore-card-link">> Contactar_</span>
+                </a>
+
+                <a href="https://wiki.ead.pucv.cl/Pedro_Beltr%C3%A1n" target="_blank" class="explore-card full-width glitch-item">
+                    <div style="flex-grow: 1;">
+                        <span class="explore-card-label">Archivo Académico</span>
+                        <h3>Mi Wiki Casiopea</h3>
+                        <p>En mi perfil de la Wiki puedes encontrar documentación de proyectos, procesos de diseño y observaciones desarrolladas durante mi formación en la Escuela de Arquitectura y Diseño PUCV.</p>
+                    </div>
+                    <button class="btn-vintage" style="white-space: nowrap;">[ VISITAR_WIKI ]</button>
+                </a>
+                
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="index.html" class="active">/INICIO</a></li>
+                <li><a href="sobre_mi.html">/INFO</a></li>
+                <li><a href="proyectos.html">/PROYECTOS</a></li>
+                <li><a href="ejercicios.html">/EJERCICIOS</a></li>
+                <li><a href="contacto.html">/CONTACTO</a></li>
+            </ul>
+        </nav>
+        <p style="margin: 5px 0;">Pedro Pablo Beltrán Silva</p>
+        <p style="margin: 5px 0;">Sitio web desarrollado como segundo encargo del ramo Diseño desde el código.</p>
+        <p style="margin: 5px 0;">Sistema de diseño: eAD PUCV</p>
+        <p style="margin: 5px 0;">Última actualización: [DATOS BORRADOS]</p>
+        <p style="color: var(--accent-creepy); font-size: 0.7rem; margin-top: 20px;">
+            > AVISO DEL SISTEMA: Parte de la arquitectura de código de esta interfaz fue desarrollada con asistencia de Inteligencia Artificial, bajo estricta supervisión del desarrollador.
+        </p>
+    </footer>
+
+    <div id="crash-screen">
+        <div class="crash-text">[ ADVERTENCIA ]</div>
+        <div class="crash-text">SISTEMA SOBRECARGADO</div>
+        <div class="crash-text">SISTEMA COMPROMETIDO... REINICIANDO_</div>
+    </div>
+
+    <div id="assistant-container">
+        <div class="assistant-bubble" id="assistant-bubble">
+            <span id="assistant-text"></span>
+            <div class="assistant-options" id="assistant-options">
+                <button class="assistant-btn" id="btn-yes">[ SÍ ]</button>
+                <button class="assistant-btn" id="btn-no">[ NO ]</button>
+            </div>
+        </div>
+        <div class="assistant-sprite" id="clippy-sprite"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

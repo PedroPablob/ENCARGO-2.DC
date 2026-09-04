@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cian | Ejercicios</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* =========================================
+           NUEVO ESTILO: TARJETA DE EJERCICIO (ESTILO PROYECTO)
+           ========================================= */
+        .ejercicio-card {
+            background: var(--fluor-light);
+            border: 2px solid var(--text-dark);
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.15);
+            margin-bottom: 40px;
+            transition: transform 0.2s, background 0.3s;
+            font-family: 'Space Mono', monospace;
+        }
+        .ejercicio-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.2);
+        }
+        .ejercicio-card[open] {
+            background: #e8e8e8;
+        }
+        
+        /* Cabecera clickeable */
+        .ejercicio-header {
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            list-style: none;
+            border-bottom: 2px solid transparent;
+            transition: border 0.3s;
+        }
+        .ejercicio-header::-webkit-details-marker { display: none; } /* Ocultar flecha nativa */
+        .ejercicio-card[open] .ejercicio-header {
+            border-bottom: 2px dashed var(--border-harsh);
+        }
+
+        .ejercicio-title {
+            font-size: 1.3rem;
+            color: var(--text-dark);
+            font-weight: 700;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        /* Botón dinámico [ + ] / [ - ] */
+        .toggle-indicator-native {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent-creepy);
+            padding: 5px 10px;
+            border: 1px solid var(--accent-creepy);
+            transition: all 0.3s;
+        }
+        .ejercicio-card:not([open]) .toggle-indicator-native::before {
+            content: "[ + ] DESCIFRAR_DATOS";
+        }
+        .ejercicio-card[open] .toggle-indicator-native {
+            background: var(--text-dark);
+            color: var(--fluor-light);
+            border-color: var(--text-dark);
+        }
+        .ejercicio-card[open] .toggle-indicator-native::before {
+            content: "[ - ] CERRAR_DATOS";
+        }
+
+        .ejercicio-content {
+            padding: 30px;
+        }
+
+        .descripcion { 
+            font-size: 0.95rem; 
+            line-height: 1.5; 
+            margin-bottom: 30px; 
+            font-weight: bold;
+            color: var(--text-dark); 
+        }
+        .seccion-titulo { 
+            color: var(--text-dark); 
+            font-size: 0.85rem; 
+            font-weight: bold; 
+            margin: 40px 0 15px 0; 
+            letter-spacing: 1.5px; 
+            text-transform: uppercase; 
+            border-bottom: 1px dashed var(--border-harsh); 
+            padding-bottom: 8px; 
+        }
+        
+        /* Estilos base para los textos del análisis para que combinen con la web */
+        .analisis-texto {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: var(--text-dark);
+        }
+
+        /* =========================================
+           CAJA DE CÓDIGO (Adaptada a fondo claro)
+           ========================================= */
+        details.codigo-desplegable { margin-top: 40px; }
+        details.codigo-desplegable > summary {
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            list-style: none;
+            padding: 10px 15px;
+            background-color: transparent;
+            border: 2px solid var(--text-dark);
+            outline: none;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        details.codigo-desplegable > summary:hover {
+            background-color: var(--text-dark);
+            color: var(--fluor-light);
+        }
+        details.codigo-desplegable[open] > summary { margin-bottom: 15px; background: var(--text-dark); color: var(--fluor-light); }
+        
+        .codigo-container-box {
+            border: 2px dashed var(--text-dark);
+            background-color: #fff;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            box-shadow: inset 4px 4px 0px rgba(0,0,0,0.05);
+        }
+        .codigo-container-box pre { 
+            margin: 0; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            font-size: 0.85rem; 
+            line-height: 1.5; 
+            font-family: 'Courier New', Courier, monospace;
+            color: #333;
+        }
+        .codigo-container-box::-webkit-scrollbar { width: 14px; background-color: #f0f0f0; border-left: 1px solid #ccc; }
+        .codigo-container-box::-webkit-scrollbar-thumb { background-color: #bbb; border: 2px solid #f0f0f0; }
+
+        /* =========================================
+           VISTA PREVIA DE LA UDEC (ESTILOS PROTEGIDOS)
+           ========================================= */
+        .preview-box { background-color: #ffffff; border-radius: 6px; overflow: hidden; font-family: 'Inter', sans-serif; color: #212121; text-align: left; border: 2px solid var(--text-dark); }
+        .udec-wrapper { --primary-blue: #18233b; --accent-yellow: #f59e0b; --bg-gray: #f4f5f7; --text-dark: #212121; --text-light: #555555; --text-blue-gray: #9ba4b5; }
+        .udec-wrapper * { box-sizing: border-box; }
+        .udec-wrapper h1 { font-family: 'Inter', sans-serif !important; font-size: 2rem !important; font-weight: 700 !important; letter-spacing: normal !important; text-transform: none !important; border: none !important; color: #000 !important; margin: 0 0 15px 0 !important; padding: 0 !important; line-height: 1.2 !important; }
+        .udec-wrapper h2 { font-family: 'Inter', sans-serif !important; font-size: 2rem !important; font-weight: 700 !important; letter-spacing: normal !important; text-transform: none !important; border: none !important; color: #fff !important; margin: 0 0 20px 0 !important; padding: 0 !important; }
+        .udec-wrapper p { font-family: 'Inter', sans-serif !important; font-size: 0.9rem !important; color: var(--text-light) !important; letter-spacing: normal !important; font-weight: 400 !important; text-transform: none !important; }
+        .udec-wrapper strong { color: var(--text-dark) !important; font-weight: 700 !important; }
+        .udec-container { max-width: 100%; margin: 0 auto; padding: 40px 30px; }
+        .udec-top-section { display: flex; flex-wrap: wrap; gap: 40px; }
+        .udec-top-left { flex: 1; min-width: 300px; }
+        .udec-divider { width: 40px; height: 4px; background-color: var(--accent-yellow); margin-bottom: 20px; }
+        .udec-top-right { flex: 1.5; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; min-width: 350px; }
+        .udec-card { background-color: var(--bg-gray); padding: 25px 20px; border-radius: 4px; border: none; box-shadow: none; }
+        .udec-card-category { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-light); margin-bottom: 12px; }
+        .udec-card-category::before { content: ''; display: inline-block; width: 6px; height: 6px; background-color: #3b5278; }
+        .udec-card-title { font-size: 1.05rem; font-weight: 700; line-height: 1.3; margin: 0; color: #000; font-family: 'Inter', sans-serif;}
+        .udec-btn { display: inline-flex !important; align-items: center; gap: 8px; background-color: var(--accent-yellow) !important; color: #000 !important; text-decoration: none !important; font-weight: 600 !important; font-size: 0.9rem !important; padding: 10px 24px !important; border-radius: 4px !important; transition: background-color 0.2s !important; border: none !important; cursor: pointer; font-family: 'Inter', sans-serif !important; text-transform: none !important;}
+        .udec-btn:hover { background-color: #df8e08 !important; }
+        .udec-btn svg { width: 16px; height: 16px; }
+        .udec-bottom-wrapper { background-color: var(--bg-gray); padding: 40px 30px; }
+        .udec-bottom-card { display: flex; margin: 0 auto; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .udec-bottom-left { flex: 1; background-color: var(--primary-blue); color: #ffffff; padding: 40px 30px; display: flex; flex-direction: column; justify-content: center; }
+        .udec-bottom-category { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-blue-gray); margin-bottom: 25px; }
+        .udec-bottom-category::before { content: ''; display: inline-block; width: 6px; height: 6px; background-color: var(--text-blue-gray); }
+        .udec-bottom-divider { width: 40px; height: 3px; background-color: #314467; margin-bottom: 25px; }
+        .udec-bottom-left p { line-height: 1.8 !important; color: #c9d0df !important; margin-bottom: 35px !important; }
+        .udec-bottom-right { flex: 1.2; }
+        .udec-bottom-right img { width: 100%; height: 100%; object-fit: cover; display: block; filter: none !important; border: none !important; }
+
+        @media (max-width: 900px) { .udec-top-right { min-width: 100%; } .udec-bottom-card { flex-direction: column; } .udec-bottom-right img { height: 350px; } }
+        @media (max-width: 600px) { .udec-top-right { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <audio id="bg-music" loop></audio>
+    <div id="music-player-container">
+        <div class="music-icon-wrapper">
+            <button id="stop-music-btn">X</button>
+            <img src="clippy/icono-musica.png" id="music-icon" alt="Cambiar Música">
+        </div>
+        <span id="current-track-label">> Esperando...</span>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" title="Ajustar Volumen">
+    </div>
+
+    <div class="noise-overlay"></div>
+    <div class="vignette-overlay"></div>
+
+    <header>
+        <h1 class="flicker">Ejercicios_</h1>
+        <p class="subtitle">Registros de Código</p>
+        
+        <nav class="main-nav">
+            <ul>
+                <li><a href="index.html">/INICIO</a></li>
+                <li><a href="sobre_mi.html">/INFO</a></li>
+                <li><a href="proyectos.html">/PROYECTOS</a></li>
+                <li><a href="ejercicios.html" class="active">/EJERCICIOS</a></li>
+                <li><a href="contacto.html">/CONTACTO</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+        <section>
+            <h2>[ ARCHIVO DE EJERCICIOS ]</h2>
+
+            <!-- INICIO EJERCICIO 1: UDEC -->
+            <details class="ejercicio-card">
+                
+                <summary class="ejercicio-header">
+                    <span class="ejercicio-title">EJERCICIO: "RECREACIÓN UDEC"</span>
+                    <span class="toggle-indicator-native"></span>
+                </summary>
+                
+                <div class="ejercicio-content">
+                    <div class="descripcion">
+                        Recreación de una interfaz gráfica (Dirección de Servicios Estudiantiles de la UdeC) usando grid, flexbox y variables CSS a partir de una imagen de referencia.
+                    </div>
+
+                    <div class="seccion-titulo">Visualización del Ejercicio</div>
+                    
+                    <div class="preview-box udec-wrapper">
+                        <div class="udec-container">
+                            <section class="udec-top-section">
+                                <div class="udec-top-left">
+                                    <h1>Dirección de Servicios Estudiantiles</h1>
+                                    <div class="udec-divider"></div>
+                                    <p>El trabajo <strong>colaborativo, sistemático y permanente en investigación y creación</strong>, realizado en la Universidad de Concepción, es una forma válida de alcanzar altos niveles de <strong>calidad y pertinencia</strong>.</p>
+                                    <a href="#" class="udec-btn">Conocer más <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a>
+                                </div>
+                                <div class="udec-top-right">
+                                    <div class="udec-card"><div class="udec-card-category">Deportes</div><div class="udec-card-title">Actividades masivas y recreativas</div></div>
+                                    <div class="udec-card"><div class="udec-card-category">Salud</div><div class="udec-card-title">Recepción de certificados médicos</div></div>
+                                    <div class="udec-card"><div class="udec-card-category">Bienestar Estudiantil</div><div class="udec-card-title">Tarjeta Nacional Estudiantil</div></div>
+                                    <div class="udec-card"><div class="udec-card-category">Actividades extraprogramáticas</div><div class="udec-card-title">Cursos Artísticos y Culturales de libre participación</div></div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="udec-bottom-wrapper">
+                            <article class="udec-bottom-card">
+                                <div class="udec-bottom-left">
+                                    <div class="udec-bottom-category">Unidad de Deportes DISE</div>
+                                    <h2>Talleres deportivos</h2>
+                                    <div class="udec-bottom-divider"></div>
+                                    <p>Esta Unidad es la encargada de generar instancias deportivas, recreativas y de actividades masivas de integración para la formación integral y de excelencia. Su objetivo principal es entregar a los y las estudiantes las herramientas necesarias para su desarrollo integral al interior de la Universidad y ser la fuente motivadora y precursora de cambios positivos tanto en el aspecto físico como en el mental, a través de difusión o promoción de estilos de vida saludables.</p>
+                                    <div><a href="#" class="udec-btn">Visita nuestros talleres <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div>
+                                </div>
+                                <div class="udec-bottom-right">
+                                    <img src="fotos proyectos/futbol.png" alt="Estudiantes jugando fútbol">
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <details class="codigo-desplegable">
+                        <summary>&gt; DESPLEGAR CÓDIGO FUENTE COMPLETO</summary>
+                        <div class="codigo-container-box">
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="es"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;Dirección de Servicios Estudiantiles&lt;/title&gt;
+    &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"&gt;
+    &lt;style&gt;
+        :root {
+            --primary-blue: #18233b;
+            --accent-yellow: #f59e0b;
+            --bg-gray: #f4f5f7;
+            --text-dark: #212121;
+            --text-light: #555555;
+            --text-blue-gray: #9ba4b5;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; color: var(--text-dark); background-color: #ffffff; line-height: 1.5; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 60px 20px; }
+        .top-section { display: flex; flex-wrap: wrap; gap: 50px; }
+        .top-left { flex: 1; min-width: 300px; }
+        .top-left h1 { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 15px; }
+        .divider { width: 40px; height: 4px; background-color: var(--accent-yellow); margin-bottom: 20px; }
+        .top-left p { font-size: 0.95rem; color: var(--text-light); margin-bottom: 30px; line-height: 1.7; }
+        .top-left p strong { color: var(--text-dark); }
+        .top-right { flex: 1.5; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-width: 450px; }
+        .card { background-color: var(--bg-gray); padding: 30px 25px; border-radius: 4px; }
+        .card-category { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-light); margin-bottom: 12px; }
+        .card-category::before { content: ''; display: inline-block; width: 6px; height: 6px; background-color: #3b5278; }
+        .card-title { font-size: 1.15rem; font-weight: 700; line-height: 1.3; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; background-color: var(--accent-yellow); color: #000; text-decoration: none; font-weight: 600; font-size: 0.9rem; padding: 10px 24px; border-radius: 4px; transition: background-color 0.2s; }
+        .btn:hover { background-color: #df8e08; }
+        .btn svg { width: 16px; height: 16px; }
+        .bottom-bg-wrapper { background-color: var(--bg-gray); padding: 60px 0; margin-top: 40px; }
+        .bottom-card { display: flex; max-width: 1100px; margin: 0 auto; padding: 0 20px; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .bottom-left { flex: 1; background-color: var(--primary-blue); color: #ffffff; padding: 50px 40px; display: flex; flex-direction: column; justify-content: center; }
+        .bottom-category { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-blue-gray); margin-bottom: 30px; }
+        .bottom-category::before { content: ''; display: inline-block; width: 6px; height: 6px; background-color: var(--text-blue-gray); }
+        .bottom-left h2 { font-size: 2.2rem; margin-bottom: 20px; }
+        .bottom-divider { width: 40px; height: 3px; background-color: #314467; margin-bottom: 30px; }
+        .bottom-left p { font-size: 0.85rem; line-height: 1.8; color: #c9d0df; margin-bottom: 40px; }
+        .bottom-right { flex: 1.2; }
+        .bottom-right img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        @media (max-width: 900px) { .top-right { min-width: 100%; } .bottom-card { flex-direction: column; } .bottom-right img { height: 350px; } }
+        @media (max-width: 600px) { .top-right { grid-template-columns: 1fr; } }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div class="container"&gt;
+        &lt;section class="top-section"&gt;
+            &lt;div class="top-left"&gt;
+                &lt;h1&gt;Dirección de Servicios Estudiantiles&lt;/h1&gt;
+                &lt;div class="divider"&gt;&lt;/div&gt;
+                &lt;p&gt;El trabajo &lt;strong&gt;colaborativo, sistemático y permanente en investigación y creación&lt;/strong&gt;, realizado en la Universidad de Concepción, es una forma válida de alcanzar altos niveles de &lt;strong&gt;calidad y pertinencia&lt;/strong&gt;.&lt;/p&gt;
+                &lt;a href="#" class="btn"&gt;Conocer más &lt;svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"&gt;&lt;path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;
+            &lt;/div&gt;
+            &lt;div class="top-right"&gt;
+                &lt;div class="card"&gt;&lt;div class="card-category"&gt;Deportes&lt;/div&gt;&lt;div class="card-title"&gt;Actividades masivas y recreativas&lt;/div&gt;&lt;/div&gt;
+                &lt;div class="card"&gt;&lt;div class="card-category"&gt;Salud&lt;/div&gt;&lt;div class="card-title"&gt;Recepción de certificados médicos&lt;/div&gt;&lt;/div&gt;
+                &lt;div class="card"&gt;&lt;div class="card-category"&gt;Bienestar Estudiantil&lt;/div&gt;&lt;div class="card-title"&gt;Tarjeta Nacional Estudiantil&lt;/div&gt;&lt;/div&gt;
+                &lt;div class="card"&gt;&lt;div class="card-category"&gt;Actividades extraprogramáticas&lt;/div&gt;&lt;div class="card-title"&gt;Cursos Artísticos y Culturales de libre participación&lt;/div&gt;&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/section&gt;
+    &lt;/div&gt;
+
+    &lt;div class="bottom-bg-wrapper"&gt;
+        &lt;article class="bottom-card"&gt;
+            &lt;div class="bottom-left"&gt;
+                &lt;div class="bottom-category"&gt;Unidad de Deportes DISE&lt;/div&gt;
+                &lt;h2&gt;Talleres deportivos&lt;/h2&gt;
+                &lt;div class="bottom-divider"&gt;&lt;/div&gt;
+                &lt;p&gt;Esta Unidad es la encargada de generar instancias deportivas, recreativas y de actividades masivas de integración para la formación integral y de excelencia. Su objetivo principal es entregar a los y las estudiantes las herramientas necesarias para su desarrollo integral al interior de la Universidad y ser la fuente motivadora y precursora de cambios positivos tanto en el aspecto físico como en el mental, a través de difusión o promoción de estilos de vida saludables.&lt;/p&gt;
+                &lt;div&gt;&lt;a href="#" class="btn"&gt;Visita nuestros talleres &lt;svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"&gt;&lt;path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="bottom-right"&gt;
+                &lt;img src="futbol.png" alt="Estudiantes jugando fútbol"&gt;
+            &lt;/div&gt;
+        &lt;/article&gt;
+    &lt;/div&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+                        </div>
+                    </details>
+                </div>
+            </details>
+            <!-- FIN EJERCICIO 1 -->
+
+            <!-- INICIO EJERCICIO 3: ANÁLISIS DE INTERFACES -->
+            <details class="ejercicio-card">
+                
+                <summary class="ejercicio-header">
+                    <span class="ejercicio-title">EJERCICIO: "ANÁLISIS DE INTERFACES"</span>
+                    <span class="toggle-indicator-native"></span>
+                </summary>
+                
+                <div class="ejercicio-content">
+                    <div class="descripcion">
+                        Análisis estructural y de comportamiento responsivo de un sitio web y una plataforma web, evaluando sus decisiones de diseño y layout frente a distintos viewports.
+                    </div>
+
+                    <div class="seccion-titulo">1. Sitio Web: Casiopea (Wiki eAD)</div>
+                    <p class="analisis-texto"><strong>A. Comportamiento al hacer scroll:</strong> <br>
+                    La barra superior y el menú lateral de navegación global suelen mantenerse fijos o fácilmente accesibles en resoluciones de escritorio para facilitar la exploración. El bloque de contenido central, que alberga la documentación, fluye de manera independiente al hacer scroll.</p>
+                    
+                    <p class="analisis-texto"><strong>B. Distribución de columnas:</strong> <br>
+                    Al inspeccionar con las herramientas de desarrollador, se observa una estructura clásica asimétrica. Un porcentaje menor del ancho (aprox. 20-25%) se reserva para el <em>sidebar</em> o navegación, mientras que el espacio restante aloja el contenido principal, estructurado mediante un sistema de bloques o flexbox.</p>
+                    
+                    <p class="analisis-texto"><strong>C. Reacción al tamaño móvil:</strong> <br>
+                    El layout reacciona mediante <em>media queries</em>. El menú lateral colapsa (convirtiéndose en un menú hamburguesa o desplazándose hacia el fondo de la página), permitiendo que la columna de contenido principal se expanda al 100% del ancho de la pantalla para optimizar la lectura.</p>
+                    
+                    <p class="analisis-texto"><strong>D. Decisiones y ajustes:</strong> <br>
+                    Las decisiones son muy apropiadas para la naturaleza de una wiki documental, donde priorizar la lectura es clave. Como ajuste, aumentaría ligeramente el <em>padding</em> lateral en la versión móvil y ajustaría la jerarquía tipográfica para evitar que grandes bloques de texto se sientan abrumadores en pantallas pequeñas.</p>
+
+                    <div class="seccion-titulo">2. Plataforma Web: Navegador Académico</div>
+                    <p class="analisis-texto"><strong>A. Comportamiento al hacer scroll:</strong> <br>
+                    A diferencia de las interfaces modernas, la estructura es rígida. La mayoría de los elementos (incluyendo cabeceras de tablas) desaparecen hacia arriba al hacer scroll, lo que hace que el usuario pierda el contexto de los datos si la lista de información es muy extensa.</p>
+                    
+                    <p class="analisis-texto"><strong>B. Distribución de columnas:</strong> <br>
+                    Inspeccionando el DOM, su arquitectura está fuertemente basada en estructuras tabulares antiguas y contenedores estáticos. Divide la interfaz en un panel lateral para el menú de usuario y una extensa área de trabajo central para el despliegue de datos financieros o académicos.</p>
+                    
+                    <p class="analisis-texto"><strong>C. Reacción al tamaño móvil:</strong> <br>
+                    El layout presenta una baja adaptabilidad (carece de un enfoque <em>mobile-first</em>). Al reducir el <em>viewport</em> al tamaño de un teléfono, los contenedores no fluyen de forma apilada. En su lugar, el diseño se rompe o fuerza al usuario a utilizar <em>scroll</em> horizontal, lo cual entorpece gravemente la usabilidad táctil.</p>
+                    
+                    <p class="analisis-texto"><strong>D. Decisiones y ajustes:</strong> <br>
+                    Las decisiones tecnológicas están desactualizadas para los estándares actuales. El principal ajuste sería migrar la estructura tabular a un sistema <strong>CSS Grid</strong> fluido, permitiendo que en versión móvil el menú pase a ser desplegable y la información se agrupe en tarjetas apiladas en una sola columna. Además, aplicaría <code>position: sticky;</code> a los encabezados de las tablas de notas para no perder la referencia visual al bajar.</p>
+                </div>
+            </details>
+            <!-- FIN EJERCICIO 3 -->
+
+        </section>
+    </div>
+
+    <footer>
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="index.html">/INICIO</a></li>
+                <li><a href="sobre_mi.html">/INFO</a></li>
+                <li><a href="proyectos.html">/PROYECTOS</a></li>
+                <li><a href="ejercicios.html" class="active">/EJERCICIOS</a></li>
+                <li><a href="contacto.html">/CONTACTO</a></li>
+            </ul>
+        </nav>
+        <p style="margin: 5px 0;">Pedro Pablo Beltrán Silva</p>
+        <p style="margin: 5px 0;">Sitio web desarrollado como segundo encargo del ramo Diseño desde el código.</p>
+        <p style="margin: 5px 0;">Sistema de diseño: eAD PUCV</p>
+        <p style="margin: 5px 0;">Última actualización: [DATOS BORRADOS]</p>
+        <p style="color: var(--accent-creepy); font-size: 0.7rem; margin-top: 20px;">
+            > AVISO DEL SISTEMA: Parte de la arquitectura de código de esta interfaz fue desarrollada con asistencia de Inteligencia Artificial, bajo estricta supervisión del desarrollador.
+        </p>
+    </footer>
+
+    <div id="crash-screen">
+        <div class="crash-text">[ ADVERTENCIA ]</div>
+        <div class="crash-text">SISTEMA SOBRECARGADO</div>
+        <div class="crash-text">SISTEMA COMPROMETIDO... REINICIANDO_</div>
+    </div>
+
+    <div id="assistant-container">
+        <div class="assistant-bubble" id="assistant-bubble">
+            <span id="assistant-text"></span>
+        </div>
+        <div class="assistant-sprite" id="clippy-sprite"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIVEL 1: ARCHIVOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Space Mono', monospace; }
+        
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.85); color: #ff3333; cursor: pointer; transition: opacity 0.5s; text-align: center;}
+        #ui-layer h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 15px #ff3333; text-transform: uppercase; animation: glitchText 0.1s infinite;}
+        #ui-layer p { font-size: 1.2rem; color: #fff; }
+        
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background-color: rgba(255, 255, 255, 0.8); border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; transition: background-color 0.2s, transform 0.2s; }
+        #crosshair.active { background-color: #ff3333; transform: translate(-50%, -50%) scale(2); box-shadow: 0 0 10px #ff3333; }
+        
+        .vignette { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.95) 100%); pointer-events: none; z-index: 6; }
+        .noise { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; opacity: 0.06; pointer-events: none; z-index: 7; background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E'); }
+
+        @keyframes glitchText { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
+
+        .assistant-bubble { position: absolute; background-color: #ffffe1; border: 2px solid #1f1e1a; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 4px 4px 0px rgba(0,0,0,0.5); font-family: 'Space Mono', monospace; font-size: 0.85rem; color: #1f1e1a; opacity: 0; visibility: hidden; transform: translate(-50%, -100%) scale(0.8); transform-origin: bottom center; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; z-index: 8; margin-top: -60px; text-align: left; }
+        .assistant-bubble::after { content: ''; position: absolute; bottom: -8px; left: 50%; width: 15px; height: 15px; background-color: #ffffe1; border-bottom: 2px solid #1f1e1a; border-right: 2px solid #1f1e1a; transform: translateX(-50%) rotate(45deg); }
+        .assistant-bubble.visible { opacity: 1; visibility: visible; transform: translate(-50%, -100%) scale(1); }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>SISTEMA DE ARCHIVOS ENCONTRADO</h1>
+        <p>> HAZ CLIC PARA ENTRAR AL TÚNEL</p>
+        <p style="font-size: 0.9rem; margin-top: 20px; color: #aaa;">[ W, A, S, D para caminar | SHIFT para correr ]</p>
+        <p style="font-size: 0.9rem; color: #aaa;">[ Clic para abrir las puertas blindadas ]</p>
+    </div>
+
+    <div id="clippy-3d-bubble" class="assistant-bubble">
+        <span id="clippy-3d-text"></span>
+    </div>
+
+    <div id="crosshair"></div>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+
+    <script>
+        // ==========================================
+        // 1. MOTOR 3D Y TEXTURAS
+        // ==========================================
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.025); 
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const textureLoader = new THREE.TextureLoader();
+        
+        const wallTexture = textureLoader.load('texturas/pared.jpg'); 
+        wallTexture.wrapS = THREE.RepeatWrapping; wallTexture.wrapT = THREE.RepeatWrapping; wallTexture.repeat.set(2, 2); 
+
+        const floorTexture = textureLoader.load('texturas/piso.jpg');
+        floorTexture.wrapS = THREE.RepeatWrapping; floorTexture.wrapT = THREE.RepeatWrapping;
+        floorTexture.repeat.set(5, 20);
+
+        const doorTexture = textureLoader.load('texturas/puerta.jpg');
+        
+        const plasticoTex = textureLoader.load('texturas/plastico.jpg');
+        const pantallaTex = textureLoader.load('texturas/pantalla.jpg');
+        
+        const campanaTex = textureLoader.load('texturas/campana.jpg');
+        campanaTex.wrapS = THREE.RepeatWrapping; campanaTex.wrapT = THREE.RepeatWrapping;
+        campanaTex.repeat.set(4, 2); 
+
+        const pastoTex = textureLoader.load('texturas/pasto.jpe');
+        pastoTex.wrapS = THREE.RepeatWrapping; pastoTex.wrapT = THREE.RepeatWrapping; 
+        pastoTex.repeat.set(15, 15);
+
+        const wallMaterial = new THREE.MeshLambertMaterial({ color: '#d8d2a7', map: wallTexture, side: THREE.DoubleSide });
+        const floorMaterial = new THREE.MeshLambertMaterial({ color: '#5c5443', map: floorTexture, side: THREE.DoubleSide });
+        const ceilingMaterial = new THREE.MeshLambertMaterial({ color: '#222', side: THREE.DoubleSide });
+        
+        const doorMaterialWhite = new THREE.MeshLambertMaterial({ color: '#ffffff', map: doorTexture });
+        const doorMaterialRed = new THREE.MeshLambertMaterial({ color: '#ff0000', map: doorTexture });
+
+        const plasticoMat = new THREE.MeshLambertMaterial({ map: plasticoTex });
+        const pantallaMat = new THREE.MeshBasicMaterial({ map: pantallaTex }); 
+        const defaultRoomMat = new THREE.MeshLambertMaterial({ color: 0x111111, side: THREE.BackSide });
+
+        // ==========================================
+        // 2. CONSTRUCCIÓN DEL PASILLO (ALARGADO)
+        // ==========================================
+        const corridorLength = 250; 
+        const corridorWidth = 12;
+        const corridorHeight = 10;
+
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, corridorLength), floorMaterial);
+        floor.rotation.x = -Math.PI / 2; floor.position.z = -corridorLength / 2 + 10;
+        scene.add(floor);
+
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, corridorLength), ceilingMaterial);
+        ceiling.rotation.x = Math.PI / 2; ceiling.position.y = corridorHeight; ceiling.position.z = -corridorLength / 2 + 10;
+        scene.add(ceiling);
+
+        const leftDoorsZ = [-30, -80, -180];
+        const rightDoorsZ = [-30, -80, -130, -180];
+
+        function buildWallWithGaps(doorsZArray, isLeft) {
+            let currentZ = 10; 
+            doorsZArray.forEach(dZ => {
+                const wallLength = currentZ - (dZ + 2); 
+                if (wallLength > 0) {
+                    const geo = new THREE.PlaneGeometry(wallLength, corridorHeight);
+                    const mesh = new THREE.Mesh(geo, wallMaterial);
+                    mesh.rotation.y = isLeft ? Math.PI/2 : -Math.PI/2;
+                    mesh.position.set(isLeft ? -6 : 6, 5, currentZ - wallLength/2);
+                    scene.add(mesh);
+                }
+                const dintel = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), wallMaterial);
+                dintel.rotation.y = isLeft ? Math.PI/2 : -Math.PI/2;
+                dintel.position.set(isLeft ? -6 : 6, 8.5, dZ);
+                scene.add(dintel);
+                currentZ = dZ - 2; 
+            });
+
+            const endZ = -corridorLength + 10;
+            const finalLength = currentZ - endZ;
+            if (finalLength > 0) {
+                const geo = new THREE.PlaneGeometry(finalLength, corridorHeight);
+                const mesh = new THREE.Mesh(geo, wallMaterial);
+                mesh.rotation.y = isLeft ? Math.PI/2 : -Math.PI/2;
+                mesh.position.set(isLeft ? -6 : 6, 5, currentZ - finalLength/2);
+                scene.add(mesh);
+            }
+        }
+
+        buildWallWithGaps(leftDoorsZ, true);
+        buildWallWithGaps(rightDoorsZ, false);
+
+        // ==========================================
+        // 3. GENERADOR DE HABITACIONES (SIN Z-FIGHTING)
+        // ==========================================
+        const interactables = []; 
+        const doors = []; 
+        const colliders = []; // Nueva lista para guardar troncos de hongos y pedestales
+
+        function createProjectRoom(zPos, isLeft, projectData, options = {}) {
+            const size = options.size || 30; 
+            const roomMat = options.roomMaterial || defaultRoomMat;
+            const customFloor = options.floorMaterial || null;
+            
+            const roomX = isLeft ? -(6 + size/2) : (6 + size/2);
+
+            // SOLUCIÓN Z-FIGHTING: En vez de un cubo cerrado, creamos 3 paredes independientes. 
+            // Omitimos la pared que da al pasillo. El techo sigue existiendo.
+            
+            // Pared Norte (Lejana en Z)
+            const pN = new THREE.Mesh(new THREE.PlaneGeometry(size, size), roomMat);
+            pN.position.set(roomX, size/2, zPos - size/2);
+            scene.add(pN);
+
+            // Pared Sur (Cercana en Z)
+            const pS = new THREE.Mesh(new THREE.PlaneGeometry(size, size), roomMat);
+            pS.rotation.y = Math.PI;
+            pS.position.set(roomX, size/2, zPos + size/2);
+            scene.add(pS);
+
+            // Pared Profunda (Fondo de la habitación)
+            const pF = new THREE.Mesh(new THREE.PlaneGeometry(size, size), roomMat);
+            pF.rotation.y = isLeft ? Math.PI/2 : -Math.PI/2;
+            pF.position.set(isLeft ? roomX - size/2 : roomX + size/2, size/2, zPos);
+            scene.add(pF);
+            
+            // Techo de la sala
+            const pC = new THREE.Mesh(new THREE.PlaneGeometry(size, size), roomMat);
+            pC.rotation.x = Math.PI/2;
+            pC.position.set(roomX, size, zPos);
+            scene.add(pC);
+
+            // Suelo
+            if (customFloor) {
+                const rFloor = new THREE.Mesh(new THREE.PlaneGeometry(size, size), customFloor);
+                rFloor.rotation.x = -Math.PI / 2;
+                rFloor.position.set(roomX, 0.1, zPos); 
+                scene.add(rFloor);
+            } 
+
+            // Pedestal en el centro
+            const pedMat = new THREE.MeshLambertMaterial({color: 0x222222});
+            const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 3, 16), pedMat);
+            pedestal.position.set(roomX, 1.5, zPos);
+            scene.add(pedestal);
+            colliders.push({x: roomX, z: zPos, radius: 2.0}); // Colisión del pedestal
+
+            const doorGroup = new THREE.Group();
+            doorGroup.position.set(isLeft ? -6 : 6, 3.5, zPos + 2); 
+            const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 7, 4), doorMaterialWhite);
+            doorMesh.position.set(0, 0, -2);
+            doorGroup.add(doorMesh);
+            doorGroup.userData = { isDoor: true, isOpen: false, project: projectData, zPos: zPos, isLeft: isLeft, roomSize: size, roomX: roomX };
+            
+            scene.add(doorGroup);
+            interactables.push(doorMesh); 
+            doors.push(doorGroup); 
+        }
+
+        // ==========================================
+        // 4. BOSQUE FUNGI SÓLIDO (SIN ATRAVESAR)
+        // ==========================================
+        function generateFungiForest(roomX, roomZ, size) {
+            const colors = [0xff4444, 0x4444ff, 0xaa44ff, 0xffaa44, 0x44ffaa, 0xff66bb];
+            
+            const ambientCyan = new THREE.PointLight(0x00ffff, 0.8, 150);
+            ambientCyan.position.set(roomX, size/2, roomZ);
+            scene.add(ambientCyan);
+
+            for (let i = 0; i < 12; i++) {
+                const mX = roomX + (Math.random() - 0.5) * (size - 20);
+                const mZ = roomZ + (Math.random() - 0.5) * (size - 20);
+                
+                // Evita que bloqueen la entrada o el pedestal central
+                if (Math.abs(mZ - roomZ) < 15 && mX > roomX + size/2 - 20) continue; 
+                if (Math.abs(mZ - roomZ) < 8 && Math.abs(mX - roomX) < 8) continue; 
+                
+                const stemHeight = 20 + Math.random() * 15; 
+                const stemRadius = 1.5 + Math.random() * 2;
+                
+                // Tallo
+                const stem = new THREE.Mesh(new THREE.CylinderGeometry(stemRadius*0.7, stemRadius, stemHeight, 16), new THREE.MeshLambertMaterial({color: 0xeef5ee}));
+                stem.position.set(mX, stemHeight/2, mZ);
+                scene.add(stem);
+                
+                // Agregamos el tallo a las colisiones del jugador
+                colliders.push({x: mX, z: mZ, radius: stemRadius + 1.0}); // +1.0 de margen para que no roce
+                
+                // Sombrero Sólido (Esfera completa achatada en el eje Y)
+                const capRadius = stemRadius * 3 + Math.random() * 5;
+                const capColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                const cap = new THREE.Mesh(new THREE.SphereGeometry(capRadius, 32, 32), new THREE.MeshLambertMaterial({color: capColor}));
+                cap.scale.y = 0.6; // Achatamos la esfera para que parezca hongo pero no quede hueca abajo
+                cap.position.set(mX, stemHeight - 1, mZ);
+                scene.add(cap);
+
+                // Pintitas
+                for(let j=0; j<8; j++) {
+                    const spot = new THREE.Mesh(new THREE.SphereGeometry(capRadius*0.15, 8, 8), new THREE.MeshBasicMaterial({color: 0xffffff}));
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.random() * (Math.PI / 2 - 0.2); 
+                    spot.scale.y = 0.6; // Achatar pinta también
+                    spot.position.set(mX + Math.sin(phi)*Math.cos(theta)*capRadius, (stemHeight - 1) + Math.cos(phi)*capRadius*0.6, mZ + Math.sin(phi)*Math.sin(theta)*capRadius);
+                    scene.add(spot);
+                }
+                
+                if (Math.random() > 0.3) {
+                    const mLight = new THREE.PointLight(capColor, 2, 50);
+                    mLight.position.set(mX, stemHeight - 5, mZ);
+                    scene.add(mLight);
+                }
+            }
+        }
+
+        createProjectRoom(-30, true, "Proyecto: Elaris");
+        createProjectRoom(-30, false, "Proyecto: FMD 2024");
+        
+        createProjectRoom(-80, true, "Proyecto: Fluidez en Contrastes");
+        createProjectRoom(-80, false, "Proyecto: Servidor Imagen Escrita");
+        
+        createProjectRoom(-130, false, "Proyecto: Zona Inestable (Mecánica)");
+        createProjectRoom(-180, false, "Proyecto: Zona Inestable (Digital)");
+
+        const campanaMat = new THREE.MeshBasicMaterial({ map: campanaTex });
+        const pastoMat = new THREE.MeshLambertMaterial({map: pastoTex});
+        
+        const fungiSize = 80;
+        createProjectRoom(-180, true, "Proyecto: Muestra Fungi", { size: fungiSize, roomMaterial: campanaMat, floorMaterial: pastoMat });
+        generateFungiForest(-46, -180, fungiSize); 
+
+        // ==========================================
+        // 5. PC Y MASCOTA
+        // ==========================================
+        const pcGroup = new THREE.Group();
+        pcGroup.position.set(0, 0, 9);
+
+        const woodDesk = new THREE.MeshLambertMaterial({color: 0x4a3623}); 
+        
+        const deskTop = new THREE.Mesh(new THREE.BoxGeometry(8, 0.5, 4), woodDesk);
+        deskTop.position.set(0, 3, 0);
+        const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3, 3), woodDesk);
+        leg1.position.set(-3.5, 1.5, 0);
+        const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3, 3), woodDesk);
+        leg2.position.set(3.5, 1.5, 0);
+        pcGroup.add(deskTop, leg1, leg2);
+
+        const pcCase = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 3.5), plasticoMat);
+        pcCase.position.set(0, 3.85, 0);
+        const floppy = new THREE.Mesh(new THREE.BoxGeometry(1, 0.1, 0.1), new THREE.MeshLambertMaterial({color: 0x111111}));
+        floppy.position.set(1, 3.85, -1.75); 
+        pcGroup.add(pcCase, floppy);
+
+        const crtBase = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 0.5, 16), plasticoMat);
+        crtBase.position.set(0, 4.7, 0);
+        const crtBody = new THREE.Mesh(new THREE.BoxGeometry(3.5, 3.2, 3.5), plasticoMat);
+        crtBody.position.set(0, 6.5, 0.2); 
+        pcGroup.add(crtBase, crtBody);
+
+        const screen = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.4), pantallaMat);
+        screen.position.set(0, 6.5, -1.56); 
+        screen.rotation.y = Math.PI; 
+        screen.userData = { isComputer: true };
+        pcGroup.add(screen);
+
+        const pcLight = new THREE.PointLight(0x33ff00, 2, 40); 
+        pcLight.position.set(0, 6.5, -2);
+        pcGroup.add(pcLight);
+
+        const keyboard = new THREE.Mesh(new THREE.BoxGeometry(3, 0.15, 1.2), plasticoMat);
+        keyboard.position.set(0, 3.33, -1.2);
+        pcGroup.add(keyboard);
+
+        scene.add(pcGroup);
+        interactables.push(screen); 
+
+        // --- CLIPPY 3D REUBICADO AL FONDO OSCURO ---
+        const clippyTex = textureLoader.load('clippy/mascota virtual.png');
+        clippyTex.wrapS = THREE.RepeatWrapping;
+        clippyTex.repeat.set(1/15, 1); 
+        const clippyMat = new THREE.SpriteMaterial({ map: clippyTex, transparent: true });
+        const clippySprite = new THREE.Sprite(clippyMat);
+        clippySprite.position.set(0, 4, -240); 
+        clippySprite.scale.set(6, 6, 1); 
+        clippySprite.userData = { isClippy: true };
+        scene.add(clippySprite);
+        interactables.push(clippySprite);
+
+        // ==========================================
+        // 6. ILUMINACIÓN DEL PASILLO
+        // ==========================================
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.4); 
+        scene.add(ambientLight);
+
+        for (let i = 0; i < corridorLength; i += 20) {
+            const pointLight = new THREE.PointLight(0xffb84d, 1.2, 35); 
+            pointLight.position.set(0, corridorHeight - 1, -i);
+            scene.add(pointLight);
+            
+            const bulb = new THREE.Mesh(new THREE.BoxGeometry(2, 0.2, 0.5), new THREE.MeshBasicMaterial({ color: 0xffffee }));
+            bulb.position.set(0, corridorHeight - 0.1, -i);
+            scene.add(bulb);
+        }
+
+        // ==========================================
+        // 7. CONTROLES Y MOVIMIENTO
+        // ==========================================
+        camera.position.set(0, 5, 5); 
+
+        const controls = new THREE.PointerLockControls(camera, document.body);
+        const uiLayer = document.getElementById('ui-layer');
+
+        uiLayer.addEventListener('click', () => { controls.lock(); });
+        controls.addEventListener('lock', () => { uiLayer.style.opacity = '0'; setTimeout(() => uiLayer.style.display = 'none', 500); });
+        controls.addEventListener('unlock', () => { uiLayer.style.display = 'flex'; setTimeout(() => uiLayer.style.opacity = '1', 10); uiLayer.innerHTML = "<h1>SISTEMA PAUSADO</h1><p>> HAZ CLIC PARA REANUDAR</p>"; });
+
+        let moveForward = false; let moveBackward = false;
+        let moveLeft = false; let moveRight = false;
+        let isSprinting = false; 
+        
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        const baseSpeed = 80.0; 
+
+        document.addEventListener('keydown', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyD': moveRight = true; break;
+                case 'ShiftLeft': case 'ShiftRight': isSprinting = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyD': moveRight = false; break;
+                case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
+            }
+        });
+
+        // ==========================================
+        // 8. RAYCASTER E INTERACCIÓN
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        const centerScreen = new THREE.Vector2(0, 0); 
+        const crosshair = document.getElementById('crosshair');
+        
+        let clippyTimeout;
+        const clippyBubble = document.getElementById('clippy-3d-bubble');
+        const clippyText = document.getElementById('clippy-3d-text');
+
+        document.addEventListener('mousedown', () => {
+            if (controls.isLocked === true) {
+                raycaster.setFromCamera(centerScreen, camera);
+                const intersects = raycaster.intersectObjects(interactables);
+
+                if (intersects.length > 0 && intersects[0].distance < 20) { 
+                    const obj = intersects[0].object;
+
+                    if (obj.userData.isComputer) {
+                        uiLayer.style.display = 'flex';
+                        uiLayer.style.opacity = '1';
+                        uiLayer.innerHTML = "<h1>DESCONECTANDO...</h1>";
+                        setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+                    }
+
+                    if (obj.parent && obj.parent.userData.isDoor) {
+                        const doorGroup = obj.parent;
+                        doorGroup.userData.isOpen = !doorGroup.userData.isOpen; 
+                    }
+
+                    if (obj.userData.isClippy) {
+                        const phrases = [
+                            "> NO DEBERÍAS ESTAR AQUÍ.", "> ¿HAS REVISADO TU ESPALDA?", "> EL SISTEMA TE OBSERVA.",
+                            "> ¿NECESITAS AYUDA PARA ESCAPAR?", "> ESTE ARCHIVO HA SIDO CORROMPIDO.",
+                            "> NO CONFÍES EN LAS PAREDES."
+                        ];
+                        clippyText.innerText = phrases[Math.floor(Math.random() * phrases.length)];
+                        clippyBubble.classList.add('visible');
+                        
+                        clearTimeout(clippyTimeout);
+                        clippyTimeout = setTimeout(() => {
+                            clippyBubble.classList.remove('visible');
+                        }, 4000);
+                    }
+                }
+            }
+        });
+
+        // Función Auxiliar: Verifica colisión contra objetos cilíndricos en 2D (x, z)
+        function checkCollisions(camPos) {
+            for (let i = 0; i < colliders.length; i++) {
+                const c = colliders[i];
+                const dx = camPos.x - c.x;
+                const dz = camPos.z - c.z;
+                const distSq = dx*dx + dz*dz;
+                
+                if (distSq < c.radius * c.radius) {
+                    // Colisión! Empujar al jugador fuera del radio
+                    const dist = Math.sqrt(distSq);
+                    const pushFactor = (c.radius - dist) / dist;
+                    camPos.x += dx * pushFactor;
+                    camPos.z += dz * pushFactor;
+                }
+            }
+        }
+
+        // ==========================================
+        // 9. BUCLE DE ANIMACIÓN Y FÍSICAS
+        // ==========================================
+        let prevTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            raycaster.setFromCamera(centerScreen, camera);
+            const intersects = raycaster.intersectObjects(interactables);
+            if (intersects.length > 0 && intersects[0].distance < 20) {
+                crosshair.classList.add('active');
+            } else {
+                crosshair.classList.remove('active');
+            }
+
+            const currentFrame = Math.floor(time / 100) % 15; 
+            clippyTex.offset.x = currentFrame / 15;
+
+            if (clippyBubble.classList.contains('visible')) {
+                const vector = new THREE.Vector3();
+                vector.setFromMatrixPosition(clippySprite.matrixWorld);
+                vector.project(camera);
+                
+                if (vector.z < 1) {
+                    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+                    clippyBubble.style.left = `${x}px`;
+                    clippyBubble.style.top = `${y}px`;
+                } else {
+                    clippyBubble.style.left = '-1000px';
+                }
+            }
+
+            doors.forEach(doorGroup => {
+                const dist = camera.position.distanceTo(doorGroup.position);
+                const doorMesh = doorGroup.children[0];
+                
+                if (dist < 15 && !doorGroup.userData.isOpen) {
+                    doorMesh.material = doorMaterialRed;
+                } else {
+                    doorMesh.material = doorMaterialWhite;
+                }
+
+                const targetRot = doorGroup.userData.isOpen ? (doorGroup.userData.isLeft ? Math.PI/2 : -Math.PI/2) : 0;
+                doorGroup.rotation.y += (targetRot - doorGroup.rotation.y) * 0.08;
+            });
+
+            if (controls.isLocked === true) {
+                velocity.x -= velocity.x * 10.0 * delta; 
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize(); 
+
+                const currentSpeed = isSprinting ? baseSpeed * 1.8 : baseSpeed;
+
+                if (moveForward || moveBackward) velocity.z -= direction.z * currentSpeed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * currentSpeed * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                // CHEQUEO DE COLISIONES CON OBJETOS (Hongos/Pedestales)
+                checkCollisions(camera.position);
+
+                // LÍMITES DE HABITACIONES Y PASILLOS
+                let boundLeft = -5; 
+                let boundRight = 5; 
+                let boundFront = -240; 
+                let boundBack = 8; 
+
+                doors.forEach(doorGroup => {
+                    if (doorGroup.userData.isOpen) {
+                        const dZ = doorGroup.userData.zPos;
+                        const isLeft = doorGroup.userData.isLeft;
+                        const rSize = doorGroup.userData.roomSize;
+                        const rX = doorGroup.userData.roomX;
+                        const inDoorway = (camera.position.z < dZ + 1.5 && camera.position.z > dZ - 1.5);
+
+                        if (isLeft && camera.position.x < -5.5) {
+                            boundLeft = rX - rSize/2 + 1;
+                            boundRight = -6; 
+                            boundFront = dZ - rSize/2 + 1;
+                            boundBack = dZ + rSize/2 - 1;
+                            if (inDoorway) boundRight = 5; 
+                        } 
+                        else if (!isLeft && camera.position.x > 5.5) {
+                            boundRight = rX + rSize/2 - 1;
+                            boundLeft = 6;
+                            boundFront = dZ - rSize/2 + 1;
+                            boundBack = dZ + rSize/2 - 1;
+                            if (inDoorway) boundLeft = -5;
+                        } 
+                        else if (inDoorway) {
+                            if (isLeft) boundLeft = rX - rSize/2 + 1;
+                            if (!isLeft) boundRight = rX + rSize/2 - 1;
+                        }
+                    }
+                });
+
+                if (camera.position.x < boundLeft) camera.position.x = boundLeft;
+                if (camera.position.x > boundRight) camera.position.x = boundRight;
+                if (camera.position.z < boundFront) camera.position.z = boundFront;
+                if (camera.position.z > boundBack) camera.position.z = boundBack;
+            }
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
