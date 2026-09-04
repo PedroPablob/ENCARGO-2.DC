@@ -312,4 +312,36 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('musicPlaying', 'false'); 
         });
     }
+
+    // ==========================================
+    // 6. EFECTO TELETRANSPORTE (SALTAR EL VACÍO)
+    // ==========================================
+    let isTeleporting = false;
+    let lastScrollY = window.scrollY;
+
+    window.addEventListener('scroll', () => {
+        const currentScroll = window.scrollY;
+        const isScrollingDown = currentScroll > lastScrollY;
+        
+        // Si el usuario empieza a bajar y está en la zona del abismo blanco
+        if (isScrollingDown && currentScroll > 50 && currentScroll < 400 && !isTeleporting) {
+            const firstTitle = document.querySelector('section:first-of-type h2:first-of-type');
+            
+            if (firstTitle) {
+                // Apunta al bloque de contenido que sigue justo después del título
+                const targetContent = firstTitle.nextElementSibling; 
+                
+                if (targetContent) {
+                    isTeleporting = true;
+                    // El "Teletransporte" (Scroll suave hasta el inicio del bloque)
+                    targetContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Bloqueo temporal de 1 segundo para dejar que la animación termine fluida
+                    setTimeout(() => { isTeleporting = false; }, 1000);
+                }
+            }
+        }
+        lastScrollY = currentScroll;
+    });
+
 });
